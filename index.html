@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>City-States Dynasty</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+:root { --text: #e6edf7; --accent: #7dd3fc; --pink: #ff10f0; --cyan: #00f0ff; --good: #34d399; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; font-family: 'Press Start 2P', monospace; background: linear-gradient(135deg, #0a0e1a, #1a0f2e, #0a1a2e); color: var(--text); overflow-x: hidden; }
+video#bgVideo { position: fixed; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.3; z-index: 0; }
+.screen { display: none; position: relative; z-index: 10; min-height: 100vh; }
+.screen.active { display: flex; flex-direction: column; }
+#titleScreen { align-items: center; justify-content: center; }
+.arcade-box { border: 4px solid var(--cyan); box-shadow: 0 0 30px var(--cyan); padding: 40px; background: rgba(10, 14, 26, 0.97); text-align: center; max-width: 700px; }
+.arcade-title { font-size: 56px; color: var(--cyan); text-shadow: 0 0 20px var(--cyan); margin: 10px 0; letter-spacing: 2px; }
+.arcade-subtitle { font-size: 16px; color: var(--pink); text-shadow: 0 0 10px var(--pink); margin: 20px 0 40px 0; }
+.arcade-btn { background: linear-gradient(135deg, var(--cyan), var(--pink)); border: 3px solid var(--cyan); color: #000; padding: 15px 40px; margin: 15px; font-size: 14px; font-family: 'Press Start 2P', monospace; cursor: pointer; box-shadow: 0 0 20px var(--cyan); }
+.arcade-btn:hover { box-shadow: 0 0 40px var(--cyan), 0 0 60px var(--pink); transform: scale(1.05); }
+.container { max-width: 1400px; margin: 0 auto; padding: 18px; position: relative; z-index: 10; }
+header { background: linear-gradient(180deg, rgba(15,22,32,.97), rgba(13,19,31,.93)); border: 2px solid var(--accent); padding: 16px 20px; border-radius: 8px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+h1 { font-size: 18px; margin: 0; }
+.header-info { font-size: 9px; color: #a8b3c7; margin-top: 4px; }
+.layout { display: grid; grid-template-columns: 1.3fr 0.7fr; gap: 16px; }
+@media (max-width: 1000px) { .layout { grid-template-columns: 1fr; } }
+.card { background: linear-gradient(180deg, rgba(15,22,32,.97), rgba(13,19,31,.93)); border: 1px solid rgba(255,255,255,.1); border-radius: 8px; overflow: hidden; }
+.card-header { background: rgba(0,0,0,.2); border-bottom: 1px solid rgba(255,255,255,.1); padding: 12px 16px; font-size: 12px; font-weight: 700; }
+.card-body { padding: 16px; }
+h2 { font-size: 16px; font-weight: 700; margin: 0 0 10px 0; }
+p { font-size: 12px; line-height: 1.6; margin: 0 0 12px 0; }
+.video-player { width: 100%; background: #000; border-radius: 8px; border: 2px solid var(--accent); overflow: hidden; margin-bottom: 16px; display: none; box-shadow: 0 0 20px rgba(125,211,252,.3); }
+.video-player.show { display: block; }
+.video-player video { width: 100%; height: auto; min-height: 360px; display: block; background: #000; }
+.choice-btn { width: 100%; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.1); border-radius: 8px; padding: 12px; margin-bottom: 10px; cursor: pointer; text-align: left; transition: all 0.15s; color: var(--text); font-family: 'Press Start 2P', monospace; }
+.choice-btn:hover { background: rgba(255,255,255,.08); border-color: rgba(125,211,252,.4); box-shadow: 0 0 15px rgba(125,211,252,.2); }
+.choice-title { font-size: 12px; font-weight: 700; margin: 0 0 4px 0; }
+.choice-desc { font-size: 11px; color: #a8b3c7; margin: 0 0 6px 0; }
+.impacts { font-size: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+.impact { background: rgba(0,0,0,.2); padding: 2px 6px; border-radius: 4px; }
+.stat-item { background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.1); border-radius: 8px; padding: 10px; margin-bottom: 10px; font-size: 11px; }
+.stat-bar { width: 100%; height: 8px; background: rgba(255,255,255,.06); border-radius: 4px; overflow: hidden; margin-top: 6px; }
+.stat-fill { height: 100%; background: linear-gradient(90deg, #7dd3fc, #34d399); transition: width 0.3s; }
+.leaderboard { background: rgba(0,0,0,.2); border: 1px solid var(--accent); border-radius: 6px; padding: 8px; }
+.lb-row { display: flex; justify-content: space-between; padding: 6px; border-bottom: 1px solid rgba(255,255,255,.05); font-size: 10px; }
+.lb-row.gold { color: var(--good); font-weight: 700; }
+.modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,.95); display: none; align-items: center; justify-content: center; z-index: 1000; }
+.modal.open { display: flex; }
+.modal-box { background: linear-gradient(180deg, rgba(15,22,32,.99), rgba(13,19,31,.96)); border: 1px solid rgba(255,255,255,.1); border-radius: 8px; padding: 24px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; }
+input, select { width: 100%; padding: 10px; margin: 8px 0; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1); color: var(--text); border-radius: 6px; font-family: system-ui; font-size: 11px; }
+.btn-group { display: flex; gap: 10px; margin-top: 16px; }
+.btn-group button { flex: 1; background: rgba(125,211,252,.16); border: 1px solid rgba(125,211,252,.35); color: var(--text); padding: 12px; border-radius: 6px; cursor: pointer; font-family: 'Press Start 2P', monospace; font-size: 10px; font-weight: 600; }
+.btn-group button:hover { background: rgba(125,211,252,.24); }
+.final-box { text-align: center; padding: 20px; background: rgba(125,211,252,.1); border-radius: 8px; margin-bottom: 20px; }
+.ruler-title { font-size: 18px; color: var(--cyan); margin: 10px 0; }
+.ruler-desc { font-size: 12px; color: var(--pink); margin: 0 0 15px 0; }
+.score-num { font-size: 32px; font-weight: 700; color: var(--good); }
+</style>
+</head>
+<body>
+
+<video id="bgVideo" autoplay muted loop playsinline>
+  <source src="videos/background.mp4" type="video/mp4">
+</video>
+
+<!-- TITLE -->
+<div id="titleScreen" class="screen active">
+  <div class="arcade-box">
+    <div class="arcade-title">CITY-STATES</div>
+    <div class="arcade-title" style="color: var(--pink);">DYNASTY</div>
+    <div class="arcade-subtitle">Build Your Ancient Legacy</div>
+    <button class="arcade-btn" id="btnPlay">▶ START GAME</button>
+    <button class="arcade-btn" id="btnInfo">❓ HOW TO PLAY</button>
+  </div>
+</div>
+
+<!-- GAME -->
+<div id="gameScreen" class="screen">
+  <div class="container">
+    <header>
+      <div>
+        <h1 id="cityDisplay">City-States Dynasty</h1>
+        <div class="header-info" id="infoDisplay">Start a new game</div>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button style="background:rgba(125,211,252,.16);border:1px solid rgba(125,211,252,.35);color:var(--text);padding:8px 12px;font-size:10px;cursor:pointer;border-radius:6px;" id="btnRpt">📋</button>
+        <button style="background:rgba(125,211,252,.16);border:1px solid rgba(125,211,252,.35);color:var(--text);padding:8px 12px;font-size:10px;cursor:pointer;border-radius:6px;" id="btnLeader">🏆</button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <div>
+        <div class="card">
+          <div class="card-body">
+            <div id="videoBox" class="video-player">
+              <video id="gameVid" controls playsinline preload="auto">
+                <source id="vidSrc" type="video/mp4">
+              </video>
+            </div>
+
+            <h2 id="titleDisplay">Loading...</h2>
+            <p id="descDisplay"></p>
+            <div id="choicesBox"></div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <!-- LEADERBOARD -->
+        <div class="card">
+          <div class="card-header">🏆 LIVE LEADERBOARD</div>
+          <div class="leaderboard" id="leaderboardBox"></div>
+        </div>
+
+        <!-- STATS -->
+        <div class="card" style="margin-top: 14px;">
+          <div class="card-header">📊 STATS</div>
+          <div class="card-body" id="statsBox"></div>
+        </div>
+
+        <!-- LOG -->
+        <div class="card" style="margin-top: 14px;">
+          <div class="card-header">📜 LOG</div>
+          <div class="card-body" id="logBox" style="max-height: 150px; overflow-y: auto; font-size: 10px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SETUP MODAL -->
+<div id="setupMod" class="modal">
+  <div class="modal-box">
+    <h2>⚔️ CREATE YOUR DYNASTY</h2>
+    <select id="inHour">
+      <option>1st Hour</option>
+      <option>2nd Hour</option>
+      <option>5th Hour</option>
+      <option>6th Hour</option>
+    </select>
+    <input id="inName" type="text" placeholder="Your Name">
+    <input id="inCity" type="text" placeholder="City Name">
+    <div class="btn-group">
+      <button id="btnStart">▶ BEGIN</button>
+      <button id="btnLoad">↺ LOAD</button>
+    </div>
+  </div>
+</div>
+
+<!-- REPORT MODAL -->
+<div id="reportMod" class="modal">
+  <div class="modal-box">
+    <div id="reportBox" style="font-size: 11px;"></div>
+    <div class="btn-group" style="margin-top: 20px;">
+      <button id="btnDL">💾 DOWNLOAD</button>
+      <button id="btnCloseReport">✕ CLOSE</button>
+    </div>
+  </div>
+</div>
+
+<!-- LEADERBOARD MODAL -->
+<div id="leaderMod" class="modal">
+  <div class="modal-box">
+    <h2>🏆 HOUR RANKINGS</h2>
+    <div id="leaderFullBox" style="font-size: 11px;"></div>
+    <button style="width: 100%; background:rgba(125,211,252,.16);border:1px solid rgba(125,211,252,.35);color:var(--text);padding:10px;border-radius:6px;cursor:pointer;font-family:'Press Start 2P',monospace;font-size:9px;margin-top:10px;" id="btnCloseLead">✕ CLOSE</button>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebaseapp.com/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebaseapp.com/8.10.1/firebase-database.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDnPuz_qEa-Ry8qCgbsv8vch2wR6G4_8IY",
+  authDomain: "city-state-empire-game.firebaseapp.com",
+  databaseURL: "https://city-state-empire-game-default-rtdb.firebaseio.com",
+  projectId: "city-state-empire-game",
+  storageBucket: "city-state-empire-game.firebasestorage.app",
+  messagingSenderId: "908109384167",
+  appId: "1:908109384167:web:42c59befcb80a9869e9542"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+const STATS = [{k:"fd",n:"Food",i:"🌾",v:50},{k:"gd",n:"Gold",i:"💰",v:50},{k:"ml",n:"Military",i:"⚔️",v:50},{k:"ct",n:"Culture",i:"🎭",v:50},{k:"hp",n:"Happiness",i:"😊",v:60},{k:"sc",n:"Science",i:"🔬",v:40}];
+
+const ISSUES = [
+  {id:"fm",t:"Famine",d:"Drought threatens crops.",v:"videos/famine.mp4",c:[
+    {t:"Build Irrigation",d:"Invest in systems",x:{gd:-15,fd:20,sc:5}},{t:"Import Food",d:"Trade for grain",x:{gd:-20,fd:15,hp:10}},{t:"Ration",d:"Conserve",x:{fd:10,hp:-15}}
+  ]},
+  {id:"il",t:"Illness",d:"Plague strikes.",v:"videos/illness.mp4",c:[
+    {t:"Fund Hospitals",d:"Healthcare",x:{gd:-20,hp:20,sc:10}},{t:"Quarantine",d:"Isolate",x:{hp:-20,fd:-10}},{t:"Pray",d:"Ritual",x:{ct:10,hp:5}}
+  ]},
+  {id:"rd",t:"Raiders",d:"Border forces demand tribute.",v:"videos/raid.mp4",c:[
+    {t:"Pay",d:"Peace",x:{gd:-25,hp:-20}},{t:"Defend",d:"Fight",x:{ml:20,gd:-15,hp:10}},{t:"Talk",d:"Negotiate",x:{gd:-8}}
+  ]},
+  {id:"ar",t:"Arts",d:"Artists seek patronage.",v:"videos/arts.mp4",c:[
+    {t:"Theaters",d:"Fund",x:{ct:20,gd:-18,hp:15}},{t:"Small",d:"Budget",x:{ct:8,gd:-5}},{t:"Skip",d:"Other",x:{ml:10}}
+  ]},
+  {id:"tr",t:"Trade",d:"New network proposed.",v:"videos/trade.mp4",c:[
+    {t:"Invest",d:"Wealth",x:{gd:25,sc:8}},{t:"Tax",d:"Merchants",x:{gd:25,hp:-10}},{t:"Decline",d:"Skip",x:{}}
+  ]},
+  {id:"lb",t:"Labor",d:"Slavery debate.",v:"videos/labor.mp4",c:[
+    {t:"Allow",d:"Slaves",x:{gd:15,ct:-15,hp:-15}},{t:"Pay",d:"Free workers",x:{gd:-10,hp:20,ct:10}},{t:"Compromise",d:"Rights",x:{gd:5,hp:5}}
+  ]},
+  {id:"yh",t:"Youth",d:"Youth demand power.",v:"videos/youth.mp4",c:[
+    {t:"Grant",d:"Reform",x:{hp:15,ct:10}},{t:"Suppress",d:"Force",x:{ml:10,hp:-20}},{t:"Councils",d:"Share",x:{hp:10,ct:5}}
+  ]},
+  {id:"ac",t:"Academy",d:"School proposed.",v:"videos/academy.mp4",c:[
+    {t:"Build",d:"Fund",x:{sc:18,ct:15,gd:-20}},{t:"Library",d:"Budget",x:{sc:8,ct:8,gd:-8}},{t:"None",d:"Skip",x:{gd:3}}
+  ]},
+  {id:"bd",t:"Border",d:"Dispute over land.",v:"videos/border.mp4",c:[
+    {t:"Force",d:"Military",x:{ml:15,gd:-12}},{t:"Share",d:"Split",x:{hp:10}},{t:"Allies",d:"Coalition",x:{gd:-10,ml:8}}
+  ]},
+  {id:"rl",t:"Religion",d:"Temples demanded.",v:"videos/religion.mp4",c:[
+    {t:"Temples",d:"Build",x:{ct:15,gd:-18,hp:20}},{t:"Science",d:"Logic",x:{sc:15,hp:-10}},{t:"Both",d:"Balance",x:{ct:8,sc:8,gd:-10}}
+  ]},
+  {id:"ex",t:"Explore",d:"Unknown lands.",v:"videos/exploration.mp4",c:[
+    {t:"Fund",d:"Risky",x:{sc:15,gd:20,ml:-10}},{t:"Small",d:"Safe",x:{sc:8,gd:-8}},{t:"Home",d:"Local",x:{gd:5}}
+  ]},
+  {id:"wm",t:"Women",d:"Equality demanded.",v:"videos/women.mp4",c:[
+    {t:"Grant",d:"Rights",x:{hp:20,ct:15,sc:10}},{t:"Limited",d:"Gradual",x:{hp:8,ct:5}},{t:"No",d:"Status",x:{hp:-10,gd:5}}
+  ]},
+  {id:"hv",t:"Harvest",d:"Huge surplus!",v:"videos/harvest.mp4",c:[
+    {t:"Feed Poor",d:"Goodwill",x:{hp:20,fd:-10,ct:10}},{t:"Sell",d:"Profit",x:{gd:25,hp:5}},{t:"Store",d:"Reserve",x:{fd:20,gd:10}}
+  ]}
+];
+
+let G={nm:"",cy:"",hr:"",tu:0,mx:20,dn:0,st:{},nb:[{n:"Corinth",r:50},{n:"Thebes",r:45},{n:"Sparta",r:40}],lg:[],us:[],cr:0};
+
+function save(){localStorage.setItem("CS_"+G.hr,JSON.stringify(G));}
+function load(){const x=localStorage.getItem("CS_"+G.hr);if(x)try{G=JSON.parse(x);}catch{}}
+function norm(){STATS.forEach(s=>{if(!G.st[s.k])G.st[s.k]=s.v;});save();}
+function next(){const a=ISSUES.filter(x=>!G.us.includes(x.id));if(!a.length){G.dn=1;save();return null;}const i=a[Math.floor(Math.random()*a.length)];G.us.push(i.id);return i;}
+function score(){const h=G.st.hp||60,c=G.st.ct||50,s=G.st.sc||40,m=G.st.ml||50,g=G.st.gd||50;return Math.round((h+c+s+m+g)/5);}
+function ruler(){const h=G.st.hp||60,c=G.st.ct||50,s=G.st.sc||40,m=G.st.ml||50,g=G.st.gd||50,avg=(h+c+s+m+g)/5;if(h>=80&&c>=60)return{t:"BENEVOLENT RULER",d:"Your compassion and wisdom brought prosperity."};if(m>=85&&h<=40)return{t:"IRON TYRANT",d:"Fear ruled your dynasty."};if(s>=80&&c>=75)return{t:"RENAISSANCE PATRON",d:"Knowledge and culture flourished."};if(avg>=70)return{t:"GREAT RULER",d:"You balanced all aspects."};if(h<=30&&m>=80)return{t:"BRUTAL DICTATOR",d:"Your people suffered."};return{t:"MEDIOCRE RULER",d:"Your reign was forgettable."};}
+
+function setScenarioVideo(src){
+  const vid=document.getElementById("gameVid");const source=document.getElementById("vidSrc");
+  if(!src){try{vid.pause();}catch{};return;}
+  try{vid.pause();}catch{};
+  source.src=src;
+  vid.load();
+  try{vid.currentTime=0;}catch{};
+  const p=vid.play();
+  if(p&&typeof p.catch==="function"){p.catch(()=>{});}
+}
+
+function choose(i){
+  if(G.dn||!G.cr)return;
+  const iss=ISSUES.find(x=>x.id===G.cr);
+  if(!iss||!iss.c[i])return;
+  const o=iss.c[i];
+  G.tu++;
+  G.lg.push({t:G.tu,ch:o.t});
+  Object.entries(o.x||{}).forEach(([k,v])=>{if(G.st[k]!==undefined)G.st[k]=Math.max(0,Math.min(100,G.st[k]+v));});
+  if(Math.random()<0.4){const idx=Math.floor(Math.random()*G.nb.length);G.nb[idx].r=Math.max(0,Math.min(100,G.nb[idx].r+(Math.random()<0.5?-5:5)));}
+  if(G.tu>=G.mx)G.dn=1;
+  G.cr=0;
+  save();
+  setScenarioVideo(iss.v);
+  render();
+}
+
+function render(){
+  document.getElementById("statsBox").innerHTML=STATS.map(s=>{const v=G.st[s.k]||s.v;return`<div class="stat-item">${s.i} ${s.n}: <b>${v}</b><div class="stat-bar"><div class="stat-fill" style="width:${v}%"></div></div></div>`;}).join("");
+  document.getElementById("logBox").innerHTML=G.lg.slice(-5).reverse().map(l=>`<div>T${l.t}: ${l.ch}</div>`).join("");
+  document.getElementById("cityDisplay").textContent=G.cy||"City-States Dynasty";
+  document.getElementById("infoDisplay").textContent=`Turn ${G.tu}/${G.mx} • ${G.hr||"—"}`;
+
+  if(G.dn){
+    const r=ruler();const sc=score();
+    db.ref("leaderboard/"+G.hr).update({score:sc,name:G.nm,city:G.cy});
+    document.getElementById("titleDisplay").textContent="🏆 REIGN COMPLETE";
+    document.getElementById("descDisplay").innerHTML=`<div class="final-box"><h3 class="ruler-title">${r.t}</h3><p class="ruler-desc">${r.d}</p><div class="score-num">${sc}%</div></div>`;
+    document.getElementById("videoBox").classList.remove("show");
+    document.getElementById("choicesBox").innerHTML=`<button class="choice-btn" onclick="openReport()"><div class="choice-title">📋 REPORT</div></button><button class="choice-btn" onclick="newGame()"><div class="choice-title">▶ NEW</div></button>`;
+    return;
+  }
+
+  let iss=G.cr?ISSUES.find(x=>x.id===G.cr):null;
+  if(!iss){iss=next();if(!iss)return;G.cr=iss.id;save();}
+
+  document.getElementById("titleDisplay").textContent=iss.t;
+  document.getElementById("descDisplay").textContent=iss.d;
+  setScenarioVideo(iss.v);
+
+  document.getElementById("choicesBox").innerHTML=iss.c.map((o,i)=>{const d=Object.entries(o.x||{}).map(([k,v])=>{const st=STATS.find(s=>s.k===k);if(!st)return"";return`<span class="impact">${st.i}${v>0?"+":""}${v}</span>`;}).join("");return`<button class="choice-btn" onclick="choose(${i})"><div class="choice-title">${o.t}</div><div class="choice-desc">${o.d}</div><div class="impacts">${d}</div></button>`;}).join("");
+  
+  updateLeaderboard();
+}
+
+function updateLeaderboard(){
+  db.ref("leaderboard").on('value',snap=>{
+    const data=snap.val()||{};
+    const scores={"1st Hour":0,"2nd Hour":0,"5th Hour":0,"6th Hour":0};
+    Object.entries(data).forEach(([k,v])=>{if(v.score)scores[k]=(scores[k]||0)+v.score;});
+    const sorted=Object.entries(scores).sort((a,b)=>b[1]-a[1]);
+    document.getElementById("leaderboardBox").innerHTML=sorted.map((h,i)=>`<div class="lb-row ${i===0?'gold':''}"><span>${i+1}. ${h[0]}</span><span>${h[1]}%</span></div>`).join("");
+    document.getElementById("leaderFullBox").innerHTML=sorted.map((h,i)=>`<div class="lb-row ${i===0?'gold':''}"><span>${i+1}. ${h[0]}</span><span>${h[1]}%</span></div>`).join("");
+  });
+}
+
+function newGame(){G={nm:"",cy:"",hr:"",tu:0,mx:20,dn:0,st:{},nb:[{n:"Corinth",r:50},{n:"Thebes",r:45},{n:"Sparta",r:40}],lg:[],us:[],cr:0};save();document.getElementById("setupMod").classList.add("open");}
+
+function openReport(){const r=ruler(),sc=score(),ts=STATS.map(s=>({...s,val:G.st[s.k]||s.v}));document.getElementById("reportBox").innerHTML=`<h2 style="text-align:center;color:var(--cyan);">${r.t}</h2><p style="text-align:center;color:var(--pink);">${r.d}</p><p style="text-align:center;font-size:24px;color:var(--good);font-weight:700;margin:15px 0;">${sc}%</p><hr><p><b>Student:</b> ${G.nm}</p><p><b>City:</b> ${G.cy}</p><p><b>Hour:</b> ${G.hr}</p><p><b>Turns:</b> ${G.tu}/${G.mx}</p><hr><p><b>Final Stats</b></p>${ts.map(s=>`<p>${s.i} ${s.n}: ${s.val}</p>`).join("")}<p style="margin-top:12px"><b>Decisions</b></p>${G.lg.map(l=>`<p>T${l.t}: ${l.ch}</p>`).join("")}`;document.getElementById("reportMod").classList.add("open");}
+
+document.getElementById("btnPlay").addEventListener("click",()=>{document.getElementById("titleScreen").classList.remove("active");document.getElementById("gameScreen").classList.add("active");document.getElementById("setupMod").classList.add("open");document.getElementById("bgVideo").play();});
+document.getElementById("btnInfo").addEventListener("click",()=>alert("CITY-STATES DYNASTY\n\nLead your city through 20 challenges.\nMake choices that impact your realm.\nFinal score shows your ruler type!"));
+document.getElementById("btnStart").addEventListener("click",()=>{const n=document.getElementById("inName").value.trim(),c=document.getElementById("inCity").value.trim(),h=document.getElementById("inHour").value;if(!n||!c){alert("Name and city required.");return;}G={nm:n,cy:c,hr:h,tu:0,mx:20,dn:0,st:{},nb:[{n:"Corinth",r:50},{n:"Thebes",r:45},{n:"Sparta",r:40}],lg:[],us:[],cr:0};norm();document.getElementById("setupMod").classList.remove("open");render();});
+document.getElementById("btnLoad").addEventListener("click",()=>{if(!G.nm){alert("No save.");return;}document.getElementById("setupMod").classList.remove("open");render();});
+document.getElementById("btnRpt").addEventListener("click",openReport);
+document.getElementById("btnCloseReport").addEventListener("click",()=>document.getElementById("reportMod").classList.remove("open"));
+document.getElementById("btnLeader").addEventListener("click",()=>document.getElementById("leaderMod").classList.add("open"));
+document.getElementById("btnCloseLead").addEventListener("click",()=>document.getElementById("leaderMod").classList.remove("open"));
+document.getElementById("btnDL").addEventListener("click",()=>{const r=ruler(),sc=score(),t=JSON.stringify({hour:G.hr,ruler:r.t,score:sc,student:G.nm,city:G.cy,turns:G.tu,stats:G.st,log:G.lg},null,2);const a=document.createElement("a");a.href="data:text/plain,"+encodeURIComponent(t);a.download=`city_states_${G.hr}_${G.nm}.json`;a.click();});
+
+load();
+norm();
+</script>
+</body>
+</html>
