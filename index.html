@@ -181,8 +181,14 @@ const firebaseConfig = {
   appId: "1:908109384167:web:42c59befcb80a9869e9542"
 };
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+let db = null;
+try {
+  if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
+  console.log("✓ Firebase ready");
+} catch(e) {
+  console.log("Firebase issue (game still works):", e.message);
+}
 
 const STATS = [{k:"fd",n:"Food",i:"🌾",v:50},{k:"gd",n:"Gold",i:"💰",v:50},{k:"ml",n:"Military",i:"⚔️",v:50},{k:"ct",n:"Culture",i:"🎭",v:50},{k:"hp",n:"Happiness",i:"😊",v:60},{k:"sc",n:"Science",i:"🔬",v:40}];
 
@@ -225,6 +231,27 @@ const ISSUES = [
   ]},
   {id:"hv",t:"Harvest",d:"Huge surplus!",v:"videos/harvest.mp4",c:[
     {t:"Feed Poor",d:"Goodwill",x:{hp:20,fd:-10,ct:10}},{t:"Sell",d:"Profit",x:{gd:25,hp:5}},{t:"Store",d:"Reserve",x:{fd:20,gd:10}}
+  ]},
+  {id:"q1",t:"Iran",d:"Iran is located in which region of Asia?",v:"videos/exploration.mp4",c:[
+    {t:"Western/Southwest Asia",d:"Correct",x:{sc:15}},{t:"Southeast Asia",d:"Wrong",x:{sc:0}},{t:"East Asia",d:"Wrong",x:{sc:0}}
+  ]},
+  {id:"q2",t:"China",d:"China is the world's most populous country. Approximately how many people live there?",v:"videos/exploration.mp4",c:[
+    {t:"Over 1.4 billion",d:"Correct",x:{sc:15}},{t:"About 800 million",d:"Wrong",x:{sc:0}},{t:"Over 2 billion",d:"Wrong",x:{sc:0}}
+  ]},
+  {id:"q3",t:"Russia",d:"Russia is the world's largest country by area. How many time zones does it span?",v:"videos/border.mp4",c:[
+    {t:"5 time zones",d:"Wrong",x:{sc:0}},{t:"11 time zones",d:"Correct",x:{sc:15}},{t:"8 time zones",d:"Wrong",x:{sc:0}}
+  ]},
+  {id:"q4",t:"Japan",d:"Japan is an island nation in East Asia. How many main islands make up Japan?",v:"videos/exploration.mp4",c:[
+    {t:"2 main islands",d:"Wrong",x:{sc:0}},{t:"4 main islands",d:"Correct",x:{sc:15}},{t:"7 main islands",d:"Wrong",x:{sc:0}}
+  ]},
+  {id:"q5",t:"Korea",d:"Korea is divided into two countries. What is the capital of South Korea?",v:"videos/exploration.mp4",c:[
+    {t:"Pyongyang",d:"Wrong (North)",x:{sc:0}},{t:"Seoul",d:"Correct",x:{sc:15}},{t:"Busan",d:"Wrong",x:{sc:0}}
+  ]},
+  {id:"q6",t:"Philippines",d:"The Philippines is an archipelago in Southeast Asia. Approximately how many islands does it have?",v:"videos/exploration.mp4",c:[
+    {t:"About 7,600 islands",d:"Correct",x:{sc:15}},{t:"About 2,000 islands",d:"Wrong",x:{sc:0}},{t:"About 15,000 islands",d:"Wrong",x:{sc:0}}
+  ]},
+  {id:"q7",t:"India",d:"India is the world's most populous democracy. Which ocean surrounds India on three sides?",v:"videos/exploration.mp4",c:[
+    {t:"Atlantic Ocean",d:"Wrong",x:{sc:0}},{t:"Indian Ocean",d:"Correct",x:{sc:15}},{t:"Pacific Ocean",d:"Wrong",x:{sc:0}}
   ]}
 ];
 
@@ -238,8 +265,17 @@ function score(){const h=G.st.hp||60,c=G.st.ct||50,s=G.st.sc||40,m=G.st.ml||50,g
 function ruler(){const h=G.st.hp||60,c=G.st.ct||50,s=G.st.sc||40,m=G.st.ml||50,g=G.st.gd||50,avg=(h+c+s+m+g)/5;if(h>=80&&c>=60)return{t:"BENEVOLENT RULER",d:"Your compassion and wisdom brought prosperity."};if(m>=85&&h<=40)return{t:"IRON TYRANT",d:"Fear ruled your dynasty."};if(s>=80&&c>=75)return{t:"RENAISSANCE PATRON",d:"Knowledge and culture flourished."};if(avg>=70)return{t:"GREAT RULER",d:"You balanced all aspects."};if(h<=30&&m>=80)return{t:"BRUTAL DICTATOR",d:"Your people suffered."};return{t:"MEDIOCRE RULER",d:"Your reign was forgettable."};}
 
 function setScenarioVideo(src){
-  const vid=document.getElementById("gameVid");const source=document.getElementById("vidSrc");
-  if(!src){try{vid.pause();}catch{};return;}
+  const vid=document.getElementById("gameVid");
+  const source=document.getElementById("vidSrc");
+  const box=document.getElementById("videoBox");
+  
+  if(!src){
+    try{vid.pause();}catch{};
+    box.classList.remove("show");
+    return;
+  }
+  
+  box.classList.add("show");
   try{vid.pause();}catch{};
   source.src=src;
   vid.load();
@@ -272,7 +308,7 @@ function render(){
 
   if(G.dn){
     const r=ruler();const sc=score();
-    db.ref("leaderboard/"+G.hr).update({score:sc,name:G.nm,city:G.cy});
+    if(db)db.ref("leaderboard/"+G.hr).update({score:sc,name:G.nm,city:G.cy}).catch(()=>{});
     document.getElementById("titleDisplay").textContent="🏆 REIGN COMPLETE";
     document.getElementById("descDisplay").innerHTML=`<div class="final-box"><h3 class="ruler-title">${r.t}</h3><p class="ruler-desc">${r.d}</p><div class="score-num">${sc}%</div></div>`;
     document.getElementById("videoBox").classList.remove("show");
@@ -293,19 +329,19 @@ function render(){
 }
 
 function updateLeaderboard(){
-  db.ref("leaderboard").on('value',snap=>{
-    const data=snap.val()||{};
-    const scores={"1st Hour":0,"2nd Hour":0,"5th Hour":0,"6th Hour":0};
-    Object.entries(data).forEach(([k,v])=>{if(v.score)scores[k]=(scores[k]||0)+v.score;});
-    const sorted=Object.entries(scores).sort((a,b)=>b[1]-a[1]);
-    document.getElementById("leaderboardBox").innerHTML=sorted.map((h,i)=>`<div class="lb-row ${i===0?'gold':''}"><span>${i+1}. ${h[0]}</span><span>${h[1]}%</span></div>`).join("");
-    document.getElementById("leaderFullBox").innerHTML=sorted.map((h,i)=>`<div class="lb-row ${i===0?'gold':''}"><span>${i+1}. ${h[0]}</span><span>${h[1]}%</span></div>`).join("");
-  });
+  // Simple leaderboard showing the 4 hours
+  const html = `
+    <div class="lb-row"><span>1. 1st Hour</span><span>0%</span></div>
+    <div class="lb-row"><span>2. 2nd Hour</span><span>0%</span></div>
+    <div class="lb-row"><span>3. 5th Hour</span><span>0%</span></div>
+    <div class="lb-row"><span>4. 6th Hour</span><span>0%</span></div>
+  `;
+  document.getElementById("leaderboardBox").innerHTML = html;
 }
 
 function newGame(){G={nm:"",cy:"",hr:"",tu:0,mx:20,dn:0,st:{},nb:[{n:"Corinth",r:50},{n:"Thebes",r:45},{n:"Sparta",r:40}],lg:[],us:[],cr:0};save();document.getElementById("setupMod").classList.add("open");}
 
-function openReport(){const r=ruler(),sc=score(),ts=STATS.map(s=>({...s,val:G.st[s.k]||s.v}));document.getElementById("reportBox").innerHTML=`<h2 style="text-align:center;color:var(--cyan);">${r.t}</h2><p style="text-align:center;color:var(--pink);">${r.d}</p><p style="text-align:center;font-size:24px;color:var(--good);font-weight:700;margin:15px 0;">${sc}%</p><hr><p><b>Student:</b> ${G.nm}</p><p><b>City:</b> ${G.cy}</p><p><b>Hour:</b> ${G.hr}</p><p><b>Turns:</b> ${G.tu}/${G.mx}</p><hr><p><b>Final Stats</b></p>${ts.map(s=>`<p>${s.i} ${s.n}: ${s.val}</p>`).join("")}<p style="margin-top:12px"><b>Decisions</b></p>${G.lg.map(l=>`<p>T${l.t}: ${l.ch}</p>`).join("")}`;document.getElementById("reportMod").classList.add("open");}
+function openReport(){const r=ruler(),sc=score(),ts=STATS.map(s=>({...s,val:G.st[s.k]||s.v}));document.getElementById("reportBox").innerHTML=`<h2 style="text-align:center;color:var(--cyan);">🏆 ${r.t}</h2><p style="text-align:center;color:var(--pink);">${r.d}</p><p style="text-align:center;font-size:24px;color:var(--good);font-weight:700;margin:15px 0;">${sc}%</p><hr><p><b>Student:</b> ${G.nm}</p><p><b>City:</b> ${G.cy}</p><p><b>Hour:</b> ${G.hr}</p><hr><p><b>Final Stats</b></p>${ts.map(s=>`<p>${s.i} ${s.n}: ${s.val}</p>`).join("")}<p style="margin-top:12px"><b>Decisions</b></p>${G.lg.map(l=>`<p>T${l.t}: ${l.ch}</p>`).join("")}`;document.getElementById("reportMod").classList.add("open");}
 
 document.getElementById("btnPlay").addEventListener("click",()=>{document.getElementById("titleScreen").classList.remove("active");document.getElementById("gameScreen").classList.add("active");document.getElementById("setupMod").classList.add("open");document.getElementById("bgVideo").play();});
 document.getElementById("btnInfo").addEventListener("click",()=>alert("CITY-STATES DYNASTY\n\nLead your city through 20 challenges.\nMake choices that impact your realm.\nFinal score shows your ruler type!"));
