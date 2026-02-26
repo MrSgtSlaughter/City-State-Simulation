@@ -167,92 +167,118 @@ input, select { width: 100%; padding: 10px; margin: 8px 0; background: rgba(255,
   </div>
 </div>
 
-<script src="https://www.gstatic.com/firebaseapp.com/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebaseapp.com/8.10.1/firebase-database.js"></script>
-
 <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyDnPuz_qEa-Ry8qCgbsv8vch2wR6G4_8IY",
-  authDomain: "city-state-empire-game.firebaseapp.com",
-  databaseURL: "https://city-state-empire-game-default-rtdb.firebaseio.com",
-  projectId: "city-state-empire-game",
-  storageBucket: "city-state-empire-game.firebasestorage.app",
-  messagingSenderId: "908109384167",
-  appId: "1:908109384167:web:42c59befcb80a9869e9542"
-};
+// Airtable Configuration
+const AIRTABLE_TOKEN = 'patshU0L6NyIoJdwL.d4460186f260df3a500a686b0f91fd47c11b520b45a4012e77598af4006141ed';
+const AIRTABLE_BASE = 'appISJc5UZF8MMJvA';
+const AIRTABLE_TABLE = 'tblOVy5SkWmnCmsRl';
 
-let db = null;
-try {
-  if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-  db = firebase.database();
-  console.log("✓ Firebase ready");
-} catch(e) {
-  console.log("Firebase issue (game still works):", e.message);
+function submitToAirtable(hour, name, city, score) {
+  const url = `https://api.airtable.com/v0/${AIRTABLE_BASE}/${AIRTABLE_TABLE}`;
+  const data = {
+    records: [{
+      fields: {
+        'Hour': hour,
+        'Student': name,
+        'City': city,
+        'Score': score
+      }
+    }]
+  };
+
+  // Log attempt to page
+  const logDiv = document.createElement('div');
+  logDiv.style.cssText = 'position:fixed;bottom:10px;right:10px;background:#333;color:#fff;padding:10px;border-radius:5px;font-size:11px;z-index:9999;';
+  logDiv.innerHTML = `Submitting to Airtable...<br>Hour: ${hour}<br>Name: ${name}<br>Score: ${score}`;
+  document.body.appendChild(logDiv);
+
+  fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${AIRTABLE_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data)
+  })
+  .then(r => {
+    logDiv.innerHTML = `Status: ${r.status}<br>Checking response...`;
+    return r.json();
+  })
+  .then(d => {
+    logDiv.innerHTML = `✓ SUCCESS!<br>Data sent to Airtable`;
+    logDiv.style.background = '#0a0';
+    setTimeout(() => logDiv.remove(), 5000);
+  })
+  .catch(e => {
+    logDiv.innerHTML = `✗ ERROR:<br>${e.message}`;
+    logDiv.style.background = '#a00';
+  });
 }
 
 const STATS = [{k:"fd",n:"Food",i:"🌾",v:50},{k:"gd",n:"Gold",i:"💰",v:50},{k:"ml",n:"Military",i:"⚔️",v:50},{k:"ct",n:"Culture",i:"🎭",v:50},{k:"hp",n:"Happiness",i:"😊",v:60},{k:"sc",n:"Science",i:"🔬",v:40}];
 
 const ISSUES = [
-  {id:"fm",t:"Famine",d:"Drought threatens crops.",v:"videos/famine.mp4",c:[
-    {t:"Build Irrigation",d:"Invest in systems",x:{gd:-15,fd:20,sc:5}},{t:"Import Food",d:"Trade for grain",x:{gd:-20,fd:15,hp:10}},{t:"Ration",d:"Conserve",x:{fd:10,hp:-15}}
+  {id:"pw",t:"The Poisoned Well",d:"Your city's main water source has been poisoned. Bodies are piling up in the streets - children, elderly, and strong men alike. Your physicians are baffled. Panic spreads through the markets. The people whisper that a rival kingdom did this on purpose. You must act fast or face a full-scale epidemic.",v:"videos/illness.mp4",c:[
+    {t:"Close the well & distribute emergency water",d:"Expensive containment",x:{gd:-25,hp:10,fd:-5}},{t:"Execute a scapegoat",d:"Quick but brutal",x:{hp:-30,ct:-20,ml:10}},{t:"Open the gates - let people flee",d:"Merciful but weak",x:{hp:-25,ml:-10,fd:10}}
   ]},
-  {id:"il",t:"Illness",d:"Plague strikes.",v:"videos/illness.mp4",c:[
-    {t:"Fund Hospitals",d:"Healthcare",x:{gd:-20,hp:20,sc:10}},{t:"Quarantine",d:"Isolate",x:{hp:-20,fd:-10}},{t:"Pray",d:"Ritual",x:{ct:10,hp:5}}
+  {id:"cc",t:"The Court Conspiracy",d:"Three of your nobles are found meeting in secret at night. Your spy network reports they're planning to overthrow you - they believe your rule is weak. You have evidence, but it's unclear. Your military commander says execute them now. Your advisor says investigate. Your mother says forgive them and win their loyalty.",v:"videos/conspiracy.mp4",c:[
+    {t:"Execute them immediately as traitors",d:"Sends a message of strength",x:{hp:-25,ct:-20,ml:15}},{t:"Publicly investigate and hold a trial",d:"Takes time but appears just",x:{gd:-15,sc:10,hp:5}},{t:"Secretly pardon them & offer honors",d:"Wins allies but looks weak",x:{gd:-10,hp:20,ct:15}}
   ]},
-  {id:"rd",t:"Raiders",d:"Border forces demand tribute.",v:"videos/raid.mp4",c:[
-    {t:"Pay",d:"Peace",x:{gd:-25,hp:-20}},{t:"Defend",d:"Fight",x:{ml:20,gd:-15,hp:10}},{t:"Talk",d:"Negotiate",x:{gd:-8}}
+  {id:"ps",t:"The Plague Ship Arrives",d:"A trading vessel arrives at your port with sailors covered in strange black boils. The captain says it's just food poisoning from bad meat. But your healers recognize the unmistakable signs of plague - the deadliest disease known. You have minutes to decide: let them dock and risk everything, or turn away the ship and lose a crucial trade partner.",v:"videos/plague_ship.mp4",c:[
+    {t:"Allow the ship to dock - isolation protocol",d:"Economic benefit but health risk",x:{hp:-20,gd:20,sc:10}},{t:"Burn the ship and kill everyone aboard",d:"Brutal but completely stops plague",x:{hp:-40,ct:-30,sc:25}},{t:"Quarantine the ship on an island for 40 days",d:"Balanced approach, scientific method",x:{gd:-20,hp:5,sc:15}}
   ]},
-  {id:"ar",t:"Arts",d:"Artists seek patronage.",v:"videos/arts.mp4",c:[
-    {t:"Theaters",d:"Fund",x:{ct:20,gd:-18,hp:15}},{t:"Small",d:"Budget",x:{ct:8,gd:-5}},{t:"Skip",d:"Other",x:{ml:10}}
+  {id:"ub",t:"The Uprising Begins",d:"Factory workers have had enough. They're storming the city center with torches and weapons, demanding 8-hour workdays instead of 16, and better pay. There are thousands of them - your guards are outnumbered 100 to 1. The wealthy merchants are demanding you crush the rebellion. The workers say if you don't listen, they'll burn the city down.",v:"videos/labor.mp4",c:[
+    {t:"Grant all their demands immediately",d:"Expensive but prevents violence",x:{gd:-30,hp:30,ct:20}},{t:"Use the military to violently disperse them",d:"Regains control but creates enemies",x:{hp:-40,ct:-35,ml:20}},{t:"Meet with worker leaders & compromise",d:"Takes time but sustainable",x:{gd:-15,hp:15,ct:10}}
   ]},
-  {id:"tr",t:"Trade",d:"New network proposed.",v:"videos/trade.mp4",c:[
-    {t:"Invest",d:"Wealth",x:{gd:25,sc:8}},{t:"Tax",d:"Merchants",x:{gd:25,hp:-10}},{t:"Decline",d:"Skip",x:{}}
+  {id:"sc",t:"The Succession Crisis",d:"Your elderly king is dying. He has three children - your eldest son is wise but weak, your daughter is brilliant but women aren't accepted as rulers, your youngest is charming but foolish. The nobles are divided. Some want your son. Some secretly support your daughter. Your youngest is bribing generals. You must choose the next ruler, and your choice will shape the kingdom for generations.",v:"videos/succession.mp4",c:[
+    {t:"Choose the eldest son (tradition)",d:"Follows tradition but less capable",x:{hp:15,ct:10,sc:-5}},{t:"Choose the daughter (revolutionary)",d:"Progressive but controversial",x:{ct:-20,hp:-15,sc:25}},{t:"Create a council - let all three rule together",d:"Compromise but unstable",x:{hp:10,ct:15,ml:-10}}
   ]},
-  {id:"lb",t:"Labor",d:"Slavery debate.",v:"videos/labor.mp4",c:[
-    {t:"Allow",d:"Slaves",x:{gd:15,ct:-15,hp:-15}},{t:"Pay",d:"Free workers",x:{gd:-10,hp:20,ct:10}},{t:"Compromise",d:"Rights",x:{gd:5,hp:5}}
+  {id:"rs",t:"The Religious Schism",d:"A charismatic preacher has emerged claiming the old gods are false and demanding radical reform. Half your people follow him. The other half - especially the priests - see him as a heretic who will destroy your culture. Riots are breaking out in temples. You're being asked to either execute the preacher or ban traditional religion. Either way, blood will spill.",v:"videos/religion.mp4",c:[
+    {t:"Execute the preacher as a heretic",d:"Maintains tradition but creates a martyr",x:{hp:-25,ct:-15,ml:5}},{t:"Ban traditional religion & support the reformer",d:"Modern but alienates traditions",x:{ct:-30,hp:-20,sc:20}},{t:"Allow both religions to coexist peacefully",d:"Enlightened but both sides unhappy",x:{ct:-5,hp:10,sc:15}}
   ]},
-  {id:"yh",t:"Youth",d:"Youth demand power.",v:"videos/youth.mp4",c:[
-    {t:"Grant",d:"Reform",x:{hp:15,ct:10}},{t:"Suppress",d:"Force",x:{ml:10,hp:-20}},{t:"Councils",d:"Share",x:{hp:10,ct:5}}
+  {id:"fd",t:"The Famine Deepens",d:"Two years of drought have left your granaries nearly empty. Your people are starving. Food prices have tripled. Your neighboring kingdom has offered to sell you grain - but at a price that will bankrupt you. Your generals suggest raiding a weaker neighbor for food. Your advisors suggest declaring a 'famine tax' on the wealthy to buy emergency supplies.",v:"videos/famine.mp4",c:[
+    {t:"Buy grain from neighbors at any cost",d:"Saves people but economic disaster",x:{gd:-40,hp:25,fd:20}},{t:"Raid a neighboring kingdom for supplies",d:"Solves problem but makes enemies",x:{hp:10,ml:20,ct:-25}},{t:"Tax the wealthy & ration food fairly",d:"Fair and sustainable but slow",x:{gd:-15,hp:15,ct:20}}
   ]},
-  {id:"ac",t:"Academy",d:"School proposed.",v:"videos/academy.mp4",c:[
-    {t:"Build",d:"Fund",x:{sc:18,ct:15,gd:-20}},{t:"Library",d:"Budget",x:{sc:8,ct:8,gd:-8}},{t:"None",d:"Skip",x:{gd:3}}
+  {id:"tb",t:"The Technological Breakthrough",d:"Your engineers have invented a revolutionary new plow that can increase crop yields by 50%. But it requires metal - lots of it - which must be mined from sacred land that your people consider holy. The priests say mining it will curse your kingdom. The farmers say they'll starve without the new plow. Your scientists say the curse is superstition.",v:"videos/technology.mp4",c:[
+    {t:"Mine the sacred land - progress over tradition",d:"Economic boom but cultural crisis",x:{ct:-25,hp:-20,fd:30,sc:20}},{t:"Respect the sacred land - tradition over progress",d:"Keeps peace but misses opportunity",x:{fd:-15,hp:20,ct:25}},{t:"Find alternative materials for the plow",d:"Balanced but expensive and slow",x:{sc:15,gd:-20,hp:10}}
   ]},
-  {id:"bd",t:"Border",d:"Dispute over land.",v:"videos/border.mp4",c:[
-    {t:"Force",d:"Military",x:{ml:15,gd:-12}},{t:"Share",d:"Split",x:{hp:10}},{t:"Allies",d:"Coalition",x:{gd:-10,ml:8}}
+  {id:"wr",t:"The Women's Rebellion",d:"Women are demanding equal rights - the right to own property, work certain jobs, vote on important decisions. Half your kingdom supports them. The other half (mostly traditional men) sees this as the end of civilization. Protests are turning violent. Your military is split on whether to protect the protesters or suppress them.",v:"videos/women.mp4",c:[
+    {t:"Grant women full equality",d:"Modern but controversial",x:{hp:30,ct:25,gd:10}},{t:"Maintain traditional laws",d:"Safe but unjust",x:{hp:-25,ct:-20,ml:15}},{t:"Limited reforms - gradual change",d:"Compromise but everyone upset",x:{hp:10,ct:5,gd:-5}}
   ]},
-  {id:"rl",t:"Religion",d:"Temples demanded.",v:"videos/religion.mp4",c:[
-    {t:"Temples",d:"Build",x:{ct:15,gd:-18,hp:20}},{t:"Science",d:"Logic",x:{sc:15,hp:-10}},{t:"Both",d:"Balance",x:{ct:8,sc:8,gd:-10}}
+  {id:"bt",t:"The Border Threat",d:"Your neighbor has amassed 50,000 soldiers at your border. They're demanding you surrender your richest province or they'll invade. You have 20,000 soldiers. Your merchants say the province is worth less than a war would cost. Your generals say surrender is humiliation. Your people are terrified.",v:"videos/border.mp4",c:[
+    {t:"Surrender the province to avoid war",d:"Pragmatic but shameful",x:{hp:-30,ct:-25,gd:20}},{t:"Prepare for war - defend the province",d:"Risky but honorable",x:{ml:30,gd:-40,hp:0}},{t:"Negotiate - trade something less valuable for peace",d:"Diplomatic solution",x:{hp:5,gd:-10,ct:10}}
   ]},
-  {id:"ex",t:"Explore",d:"Unknown lands.",v:"videos/exploration.mp4",c:[
-    {t:"Fund",d:"Risky",x:{sc:15,gd:20,ml:-10}},{t:"Small",d:"Safe",x:{sc:8,gd:-8}},{t:"Home",d:"Local",x:{gd:5}}
+  {id:"eg",t:"The Exploration Gamble",d:"Your explorers have returned with news of undiscovered lands beyond the sea - possibly containing gold, spices, and new trade routes. But the journey is deadly - 2 out of 3 ships are expected to be lost. The venture will cost your treasury dearly. But if successful, it could make you the richest kingdom in the world.",v:"videos/exploration.mp4",c:[
+    {t:"Fund the expedition massively",d:"Ambitious but potentially ruinous",x:{gd:-50,sc:30,ct:10}},{t:"Send a small, cautious expedition",d:"Safe but limited reward",x:{gd:-15,sc:10,hp:5}},{t:"Don't fund exploration - focus on home",d:"Stable but no progress",x:{gd:10,hp:5,sc:-10}}
   ]},
-  {id:"wm",t:"Women",d:"Equality demanded.",v:"videos/women.mp4",c:[
-    {t:"Grant",d:"Rights",x:{hp:20,ct:15,sc:10}},{t:"Limited",d:"Gradual",x:{hp:8,ct:5}},{t:"No",d:"Status",x:{hp:-10,gd:5}}
+  {id:"ar",t:"The Artistic Renaissance",d:"A great artist has arrived in your city - someone whose works will be remembered for centuries. But supporting true art is expensive. The wealthy want to buy their portraits. The poor want bread. Your treasury can't support both. You must choose: fund the arts and inspire your people, or feed the hungry and be seen as practical.",v:"videos/arts.mp4",c:[
+    {t:"Fund the artist lavishly",d:"Creates legacy but ignores suffering",x:{hp:-20,ct:40,gd:-30}},{t:"Ignore the artist & feed the poor",d:"Practical but misses greatness",x:{hp:20,ct:-15,gd:-20}},{t:"Compromise - modest support & feeding people",d:"Balanced approach",x:{hp:5,ct:15,gd:-20}}
   ]},
-  {id:"hv",t:"Harvest",d:"Huge surplus!",v:"videos/harvest.mp4",c:[
-    {t:"Feed Poor",d:"Goodwill",x:{hp:20,fd:-10,ct:10}},{t:"Sell",d:"Profit",x:{gd:25,hp:5}},{t:"Store",d:"Reserve",x:{fd:20,gd:10}}
+  {id:"tm",t:"The Trade Monopoly War",d:"A powerful merchant guild has become too powerful - they're controlling all trade, setting prices, and becoming richer than the crown. They're bribing your officials and threatening to leave your city if you regulate them. If they leave, your economy collapses. If you let them continue, they'll eventually control your kingdom.",v:"videos/trade.mp4",c:[
+    {t:"Break up the guild by force",d:"Regains control but destroys economy",x:{gd:-40,ml:15,hp:-20}},{t:"Tax them heavily & regulate prices",d:"Balance power and profit",x:{gd:30,hp:20,ct:10}},{t:"Grant them more power in exchange for loyalty",d:"Wealthy but become their puppet",x:{gd:50,hp:-30,ct:-20}}
   ]},
-  {id:"q1",t:"Iran",d:"Iran is located in which region of Asia?",v:"videos/exploration.mp4",c:[
-    {t:"Western/Southwest Asia",d:"Correct",x:{sc:15}},{t:"Southeast Asia",d:"Wrong",x:{sc:0}},{t:"East Asia",d:"Wrong",x:{sc:0}}
+  {id:"q1",t:"Geography: Southwest Border",d:"Which country is directly southwest of Saudi Arabia?",v:"videos/exploration.mp4",c:[
+    {t:"Yemen",d:"",x:{sc:15}},{t:"Oman",d:"",x:{sc:0}},{t:"UAE",d:"",x:{sc:0}}
   ]},
-  {id:"q2",t:"China",d:"China is the world's most populous country. Approximately how many people live there?",v:"videos/exploration.mp4",c:[
-    {t:"Over 1.4 billion",d:"Correct",x:{sc:15}},{t:"About 800 million",d:"Wrong",x:{sc:0}},{t:"Over 2 billion",d:"Wrong",x:{sc:0}}
+  {id:"q2",t:"Geography: Eastern Border",d:"Which country borders Iran to the east?",v:"videos/border.mp4",c:[
+    {t:"Afghanistan",d:"",x:{sc:15}},{t:"Pakistan",d:"",x:{sc:0}},{t:"Turkmenistan",d:"",x:{sc:0}}
   ]},
-  {id:"q3",t:"Russia",d:"Russia is the world's largest country by area. How many time zones does it span?",v:"videos/border.mp4",c:[
-    {t:"5 time zones",d:"Wrong",x:{sc:0}},{t:"11 time zones",d:"Correct",x:{sc:15}},{t:"8 time zones",d:"Wrong",x:{sc:0}}
+  {id:"q3",t:"Geography: Eastern Neighbor",d:"Which country is directly east of Iraq?",v:"videos/border.mp4",c:[
+    {t:"Iran",d:"",x:{sc:15}},{t:"Syria",d:"",x:{sc:0}},{t:"Kuwait",d:"",x:{sc:0}}
   ]},
-  {id:"q4",t:"Japan",d:"Japan is an island nation in East Asia. How many main islands make up Japan?",v:"videos/exploration.mp4",c:[
-    {t:"2 main islands",d:"Wrong",x:{sc:0}},{t:"4 main islands",d:"Correct",x:{sc:15}},{t:"7 main islands",d:"Wrong",x:{sc:0}}
+  {id:"q4",t:"Geography: Across the Gulf",d:"Which country is directly across the Persian Gulf from Iran?",v:"videos/exploration.mp4",c:[
+    {t:"Saudi Arabia",d:"",x:{sc:15}},{t:"Qatar",d:"",x:{sc:0}},{t:"Bahrain",d:"",x:{sc:0}}
   ]},
-  {id:"q5",t:"Korea",d:"Korea is divided into two countries. What is the capital of South Korea?",v:"videos/exploration.mp4",c:[
-    {t:"Pyongyang",d:"Wrong (North)",x:{sc:0}},{t:"Seoul",d:"Correct",x:{sc:15}},{t:"Busan",d:"Wrong",x:{sc:0}}
+  {id:"q5",t:"Geography: Northern Border",d:"Which country borders Turkey to the north?",v:"videos/border.mp4",c:[
+    {t:"Georgia",d:"",x:{sc:15}},{t:"Russia",d:"",x:{sc:0}},{t:"Bulgaria",d:"",x:{sc:0}}
   ]},
-  {id:"q6",t:"Philippines",d:"The Philippines is an archipelago in Southeast Asia. Approximately how many islands does it have?",v:"videos/exploration.mp4",c:[
-    {t:"About 7,600 islands",d:"Correct",x:{sc:15}},{t:"About 2,000 islands",d:"Wrong",x:{sc:0}},{t:"About 15,000 islands",d:"Wrong",x:{sc:0}}
+  {id:"q6",t:"Geography: Western Neighbor",d:"Which country is directly west of Jordan?",v:"videos/exploration.mp4",c:[
+    {t:"Israel",d:"",x:{sc:15}},{t:"Syria",d:"",x:{sc:0}},{t:"Lebanon",d:"",x:{sc:0}}
   ]},
-  {id:"q7",t:"India",d:"India is the world's most populous democracy. Which ocean surrounds India on three sides?",v:"videos/exploration.mp4",c:[
-    {t:"Atlantic Ocean",d:"Wrong",x:{sc:0}},{t:"Indian Ocean",d:"Correct",x:{sc:15}},{t:"Pacific Ocean",d:"Wrong",x:{sc:0}}
+  {id:"q7",t:"Geography: Southern Border",d:"Which country is directly south of Israel?",v:"videos/exploration.mp4",c:[
+    {t:"Egypt",d:"",x:{sc:15}},{t:"Saudi Arabia",d:"",x:{sc:0}},{t:"Jordan",d:"",x:{sc:0}}
   ]}
+];
 ];
 
 let G={nm:"",cy:"",hr:"",tu:0,mx:20,dn:0,st:{},nb:[{n:"Corinth",r:50},{n:"Thebes",r:45},{n:"Sparta",r:40}],lg:[],us:[],cr:0};
@@ -308,7 +334,7 @@ function render(){
 
   if(G.dn){
     const r=ruler();const sc=score();
-    if(db)db.ref("leaderboard/"+G.hr).update({score:sc,name:G.nm,city:G.cy}).catch(()=>{});
+    submitToAirtable(G.hr, G.nm, G.cy, sc);
     document.getElementById("titleDisplay").textContent="🏆 REIGN COMPLETE";
     document.getElementById("descDisplay").innerHTML=`<div class="final-box"><h3 class="ruler-title">${r.t}</h3><p class="ruler-desc">${r.d}</p><div class="score-num">${sc}%</div></div>`;
     document.getElementById("videoBox").classList.remove("show");
