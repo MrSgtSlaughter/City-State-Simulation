@@ -257,28 +257,27 @@ const ISSUES = [
   {id:"tm",t:"The Trade Monopoly War",d:"A powerful merchant guild has become too powerful - they're controlling all trade, setting prices, and becoming richer than the crown. They're bribing your officials and threatening to leave your city if you regulate them. If they leave, your economy collapses. If you let them continue, they'll eventually control your kingdom.",v:"videos/trade.mp4",c:[
     {t:"Break up the guild by force",d:"Regains control but destroys economy",x:{gd:-40,ml:15,hp:-20}},{t:"Tax them heavily & regulate prices",d:"Balance power and profit",x:{gd:30,hp:20,ct:10}},{t:"Grant them more power in exchange for loyalty",d:"Wealthy but become their puppet",x:{gd:50,hp:-30,ct:-20}}
   ]},
-  {id:"q1",t:"Geography: Southwest Border",d:"Which country is directly southwest of Saudi Arabia?",v:"videos/exploration.mp4",c:[
+  {id:"q1",t:"Geography: Southwest Border",d:"Which country is directly southwest of Saudi Arabia?",v:"videos/geography.mp4",c:[
     {t:"Yemen",d:"",x:{sc:15}},{t:"Oman",d:"",x:{sc:0}},{t:"UAE",d:"",x:{sc:0}}
   ]},
-  {id:"q2",t:"Geography: Eastern Border",d:"Which country borders Iran to the east?",v:"videos/border.mp4",c:[
+  {id:"q2",t:"Geography: Eastern Border",d:"Which country borders Iran to the east?",v:"videos/geography.mp4",c:[
     {t:"Afghanistan",d:"",x:{sc:15}},{t:"Pakistan",d:"",x:{sc:0}},{t:"Turkmenistan",d:"",x:{sc:0}}
   ]},
-  {id:"q3",t:"Geography: Eastern Neighbor",d:"Which country is directly east of Iraq?",v:"videos/border.mp4",c:[
+  {id:"q3",t:"Geography: Eastern Neighbor",d:"Which country is directly east of Iraq?",v:"videos/geography.mp4",c:[
     {t:"Iran",d:"",x:{sc:15}},{t:"Syria",d:"",x:{sc:0}},{t:"Kuwait",d:"",x:{sc:0}}
   ]},
-  {id:"q4",t:"Geography: Across the Gulf",d:"Which country is directly across the Persian Gulf from Iran?",v:"videos/exploration.mp4",c:[
+  {id:"q4",t:"Geography: Across the Gulf",d:"Which country is directly across the Persian Gulf from Iran?",v:"videos/geography.mp4",c:[
     {t:"Saudi Arabia",d:"",x:{sc:15}},{t:"Qatar",d:"",x:{sc:0}},{t:"Bahrain",d:"",x:{sc:0}}
   ]},
-  {id:"q5",t:"Geography: Northern Border",d:"Which country borders Turkey to the north?",v:"videos/border.mp4",c:[
+  {id:"q5",t:"Geography: Northern Border",d:"Which country borders Turkey to the north?",v:"videos/geography.mp4",c:[
     {t:"Georgia",d:"",x:{sc:15}},{t:"Russia",d:"",x:{sc:0}},{t:"Bulgaria",d:"",x:{sc:0}}
   ]},
-  {id:"q6",t:"Geography: Western Neighbor",d:"Which country is directly west of Jordan?",v:"videos/exploration.mp4",c:[
+  {id:"q6",t:"Geography: Western Neighbor",d:"Which country is directly west of Jordan?",v:"videos/geography.mp4",c:[
     {t:"Israel",d:"",x:{sc:15}},{t:"Syria",d:"",x:{sc:0}},{t:"Lebanon",d:"",x:{sc:0}}
   ]},
-  {id:"q7",t:"Geography: Southern Border",d:"Which country is directly south of Israel?",v:"videos/exploration.mp4",c:[
+  {id:"q7",t:"Geography: Southern Border",d:"Which country is directly south of Israel?",v:"videos/geography.mp4",c:[
     {t:"Egypt",d:"",x:{sc:15}},{t:"Saudi Arabia",d:"",x:{sc:0}},{t:"Jordan",d:"",x:{sc:0}}
   ]}
-];
 ];
 
 let G={nm:"",cy:"",hr:"",tu:0,mx:20,dn:0,st:{},nb:[{n:"Corinth",r:50},{n:"Thebes",r:45},{n:"Sparta",r:40}],lg:[],us:[],cr:0};
@@ -349,7 +348,7 @@ function render(){
   document.getElementById("descDisplay").textContent=iss.d;
   setScenarioVideo(iss.v);
 
-  document.getElementById("choicesBox").innerHTML=iss.c.map((o,i)=>{const d=Object.entries(o.x||{}).map(([k,v])=>{const st=STATS.find(s=>s.k===k);if(!st)return"";return`<span class="impact">${st.i}${v>0?"+":""}${v}</span>`;}).join("");return`<button class="choice-btn" onclick="choose(${i})"><div class="choice-title">${o.t}</div><div class="choice-desc">${o.d}</div><div class="impacts">${d}</div></button>`;}).join("");
+  document.getElementById("choicesBox").innerHTML=iss.c.map((o,i)=>{const isGeo=iss.id.startsWith("q");const d=isGeo?"":Object.entries(o.x||{}).map(([k,v])=>{const st=STATS.find(s=>s.k===k);if(!st)return"";return`<span class="impact">${st.i}${v>0?"+":""}${v}</span>`;}).join("");return`<button class="choice-btn" onclick="choose(${i})"><div class="choice-title">${o.t}</div><div class="choice-desc">${o.d}</div><div class="impacts">${d}</div></button>`;}).join("");
   
   updateLeaderboard();
 }
